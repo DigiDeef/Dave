@@ -42,17 +42,17 @@ jobs:
           unzip commandlinetools-linux-7583922_latest.zip
           rm commandlinetools-linux-7583922_latest.zip
 
-          # Move to cmdline-tools directory and setup environment
+          # Move the contents of the cmdline-tools folder into the correct subfolder (latest)
           mkdir -p $HOME/android-sdk/cmdline-tools/latest
           mv cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/
 
-          # Update SDK manager and accept licenses
+          # Now, run the SDK manager to update and install necessary components
           yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --update
           yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
 
           # Install required SDK components
           $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "build-tools;36.0.0" "platforms;android-30"
-
+          
       - name: Cache Buildozer working directory
         uses: actions/cache@v4
         with:
