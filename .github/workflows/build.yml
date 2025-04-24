@@ -78,6 +78,11 @@ jobs:
           yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
           $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "platforms;android-30" "build-tools;30.0.3"
 
+      - name: Symlink expected tools/bin path for sdkmanager
+        run: |
+          mkdir -p $HOME/android-sdk/tools/bin
+          ln -s $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager $HOME/android-sdk/tools/bin/sdkmanager
+    
       # Build APK
       - name: Build APK with Buildozer
         run: |
