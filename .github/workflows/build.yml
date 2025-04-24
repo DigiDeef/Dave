@@ -15,44 +15,68 @@ jobs:
       - name: Install Python 3.10
         run: |
           sudo apt update
-          sudo apt install -y python3.10 python3.10-dev python3.10-distutils python3-pip
+          sudo apt install -y python3.10 python3.10-dev python3.10-distutils
+          sudo apt install -y python3-pip
           python3.10 -m pip install --upgrade pip
-          sudo ln -sf /usr/bin/python3.10 /usr/bin/python
 
-      - name: Install dependencies and Buildozer
+      - name: Set Python 3.10 as default
+        run: |
+          sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1
+          sudo update-alternatives --set python /usr/bin/python3.10
+          python --version
+
+      - name: Install Buildozer and dependencies
         run: |
           sudo apt install -y build-essential libssl-dev libffi-dev \
-              libsqlite3-dev zlib1g-dev libncurses5-dev libreadline-dev \
-              libgdbm-dev libbz2-dev liblzma-dev openjdk-11-jdk unzip git curl
-          python -m pip install --upgrade cython buildozer
+              libsqlite3-dev zlib1g-dev libncurses5 libncurses5-dev \
+              libreadline-dev libgdbm-dev libbz2-dev liblzma-dev \
+              openjdk-11-jdk unzip git
+          pip install cython
+          pip install buildozer
 
-      - name: Download and install Android SDK
+      - name: Install Android SDK cmdline-tools
         run: |
           mkdir -p $HOME/android-sdk/cmdline-tools
           cd $HOME/android-sdk/cmdline-tools
-          curl -o sdk.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip sdk.zip
-          mv cmdline-tools latest
-          export ANDROID_HOME=$HOME/android-sdk
-          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
-          yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.1.8937393"
+          wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
+          unzip commandlinetools-linux-8512546_latest.zip -d latest
+          echo "export ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "export PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$PATH" >> $GITHUB_ENV
+          echo "export PATH=$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
 
-      - name: Symlink expected tools/bin path for sdkmanager
+      - name: Accept Android licenses and install packages
         run: |
-          mkdir -p $HOME/android-sdk/tools/bin
-          ln -sf $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager $HOME/android-sdk/tools/bin/sdkmanager
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
+          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk \
+            "platform-tools" "platforms;android-33" "build-tools;33.0.2"
 
-      - name: Build APK
-        env:
-          ANDROIDSDK: ${{ env.HOME }}/android-sdk
-          ANDROIDNDK: ${{ env.HOME }}/android-sdk/ndk/25.1.8937393
+      - name: Pre-download Android NDK to skip Buildozer bug
         run: |
-          echo "sdk.dir=$ANDROIDSDK" >> ~/.buildozer/android/platform/android-sdk/.android/repositories.cfg || true
-          buildozer android debug
+          mkdir -p $HOME/.buildozer/android/platform
+          cd $HOME/.buildozer/android/platform
+          wget https://dl.google.com/android/repository/android-ndk-r25.1.8937393-linux.zip
+          unzip android-ndk-r25.1.8937393-linux.zip
+          mv android-ndk-r25.1.8937393 ndk/25.1.8937393
+
+      - name: Set environment vars
+        run: |
+          echo "PATH=$PATH:$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$HOME/.buildozer/android/platform/ndk/25.1.8937393" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+
+      - name: Cache Buildozer working directory
+        uses: actions/cache@v4
+        with:
+          path: .buildozer
+          key: ${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            ${{ runner.os }}-
+
+      - name: Build APK with Buildozer
+        run: buildozer android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: kivy-apk
+          name: package
           path: bin/*.apk
