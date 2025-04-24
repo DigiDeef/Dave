@@ -312,7 +312,7 @@ android.allow_backup = True
 
 #
 # Python for android (p4a) specific
-#
+p4a.branch = develop
 
 # (str) python-for-android URL to use for checkout
 #p4a.url =
