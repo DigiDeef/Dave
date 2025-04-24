@@ -34,7 +34,7 @@ jobs:
           sudo apt-get install -y wget unzip
 
           # Set up Android SDK directory
-          mkdir -p $HOME/android-sdk
+          mkdir -p $HOME/android-sdk/cmdline-tools/latest
           cd $HOME/android-sdk
 
           # Download the SDK command line tools (latest version)
@@ -42,8 +42,7 @@ jobs:
           unzip commandlinetools-linux-7583922_latest.zip
           rm commandlinetools-linux-7583922_latest.zip
 
-          # Move the contents of the cmdline-tools folder into the correct subfolder (latest)
-          mkdir -p $HOME/android-sdk/cmdline-tools/latest
+          # Move the cmdline-tools into the correct subfolder
           mv cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/
 
           # Now, run the SDK manager to update and install necessary components
@@ -52,6 +51,7 @@ jobs:
 
           # Install required SDK components
           $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "build-tools;36.0.0" "platforms;android-30"
+
           
       - name: Cache Buildozer working directory
         uses: actions/cache@v4
