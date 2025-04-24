@@ -15,56 +15,39 @@ jobs:
       - name: Install Python 3.10
         run: |
           sudo apt update
-          sudo apt install -y python3.10 python3.10-dev python3.10-distutils
-          sudo apt install -y python3-pip
+          sudo apt install -y python3.10 python3.10-dev python3.10-distutils python3-pip
           python3.10 -m pip install --upgrade pip
+          python3.10 -m pip install virtualenv
+        shell: bash
 
-      - name: Set Python 3.10 as default
+      - name: Set up Python 3.10 venv
         run: |
-          sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1
-          sudo update-alternatives --set python /usr/bin/python3.10
-          python --version
+          python3.10 -m virtualenv venv
+          source venv/bin/activate
+          pip install cython buildozer
 
-      - name: Install Buildozer and dependencies
+      - name: Install build dependencies
         run: |
           sudo apt install -y build-essential libssl-dev libffi-dev \
-              libsqlite3-dev zlib1g-dev libncurses5 libncurses5-dev \
-              libreadline-dev libgdbm-dev libbz2-dev liblzma-dev \
-              openjdk-11-jdk unzip git
-          pip install cython
-          pip install buildozer
+            libsqlite3-dev zlib1g-dev libncurses5 libncurses5-dev \
+            libreadline-dev libgdbm-dev libbz2-dev liblzma-dev openjdk-11-jdk unzip wget git
 
       - name: Install Android SDK cmdline-tools
         run: |
           mkdir -p $HOME/android-sdk/cmdline-tools
           cd $HOME/android-sdk/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-          unzip commandlinetools-linux-8512546_latest.zip -d latest
-          echo "export ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "export PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$PATH" >> $GITHUB_ENV
-          echo "export PATH=$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
+          wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -O cmdline-tools.zip
+          unzip cmdline-tools.zip -d tmp
+          mkdir latest
+          mv tmp/cmdline-tools/* latest/
+          rm -rf tmp cmdline-tools.zip
+          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
 
-      - name: Accept Android licenses and install packages
-        run: |
-          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
-          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk \
-            "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+      - name: Accept Android SDK licenses
+        run: yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
 
-      - name: Pre-download Android NDK to skip Buildozer bug
-        run: |
-          mkdir -p $HOME/.buildozer/android/platform
-          cd $HOME/.buildozer/android/platform
-          wget https://dl.google.com/android/repository/android-ndk-r25.1.8937393-linux.zip
-          unzip android-ndk-r25.1.8937393-linux.zip
-          mv android-ndk-r25.1.8937393 ndk/25.1.8937393
-
-      - name: Set environment vars
-        run: |
-          echo "PATH=$PATH:$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$HOME/.buildozer/android/platform/ndk/25.1.8937393" >> $GITHUB_ENV
-          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-
-      - name: Cache Buildozer working directory
+      - name: Cache Buildozer directory
         uses: actions/cache@v4
         with:
           path: .buildozer
@@ -73,7 +56,9 @@ jobs:
             ${{ runner.os }}-
 
       - name: Build APK with Buildozer
-        run: buildozer android debug
+        run: |
+          source venv/bin/activate
+          buildozer android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
