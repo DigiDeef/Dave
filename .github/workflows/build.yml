@@ -33,21 +33,25 @@ jobs:
           # Install Android SDK tools
           sudo apt-get install -y wget unzip
 
-          # Install Android SDK
+          # Set up Android SDK directory
           mkdir -p $HOME/android-sdk
           cd $HOME/android-sdk
+
+          # Download the SDK command line tools (latest version)
           wget https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip
           unzip commandlinetools-linux-7583922_latest.zip
           rm commandlinetools-linux-7583922_latest.zip
 
-          # Update SDK manager
-          yes | $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk --update
+          # Move to cmdline-tools directory and setup environment
+          mkdir -p $HOME/android-sdk/cmdline-tools/latest
+          mv cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/
 
-          # Accept licenses
-          yes | $HOME/android-sdk/cmdline-tools/bin/sdkmanager --licenses
+          # Update SDK manager and accept licenses
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --update
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk --licenses
 
-          # Install required SDK components (platform tools, build tools, platforms)
-          $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "build-tools;36.0.0" "platforms;android-30"
+          # Install required SDK components
+          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/android-sdk "platform-tools" "build-tools;36.0.0" "platforms;android-30"
 
       - name: Cache Buildozer working directory
         uses: actions/cache@v4
